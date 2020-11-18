@@ -1,0 +1,519 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: CFN script to provision the required infrastructure for IBM zD&T
+
+Metadata: {}
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      id: ami-6871a115
+    us-west-2:
+      id: ami-28e07e50
+
+Conditions: {}
+
+Outputs: 
+  LicenseServerPrivateIP:
+    Description: The private IP address of the License Server
+    Value: !GetAtt LicenseServer.PrivateIp
+  LicenseServerPublicIP:
+    Description: The public IP address of the License Server
+    Value: !GetAtt LicenseServer.PublicIp
+  EmulatorServerPrivateIP:
+    Description: The private IP address of the Emulator Server
+    Value: !GetAtt EmulatorServer.PrivateIp
+  EmulatorServerPublicIP:
+    Description: The public IP address of the Emulator Server
+    Value: !GetAtt EmulatorServer.PublicIp
+  EnterpriseServerPrivateIP:
+    Description: The private IP address of the Enterprise Server
+    Value: !GetAtt EnterpriseServer.PrivateIp
+  EnterpriseServerPublicIP:
+    Description: The public IP address of the Enterprise Server
+    Value: !GetAtt EnterpriseServer.PublicIp
+  EnterpriseServerAdminConsoleURL:
+    Description: The URL to access the Enterprise Server Admin Console
+    Value: 
+      !Join
+        - ''
+        - - "https://"
+          - !GetAtt EnterpriseServer.PublicIp
+          - ":9443/ZDTMC/index.html"
+  EnterpriseServerAdminConsoleUser:
+    Description: The user to access the Enterprise Server Admin Console
+    Value: zdtadmin
+  EnterpriseServerAdminConsolePassword:
+    Description: The password to access the Enterprise Server Admin Console
+    Value: password
+
+
+Parameters:
+  UserCidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 0.0.0.0/0
+    Description: |
+      Your home/office network CIDR block or IP address to access EC2 instances remotely (eg 178.31.18.0/24 or 178.31.18.201/32).
+      This will be used to allow ingress in the security group.
+      Using 0.0.0.0/0 will allow access from any IP, we recommend you change it to you home/office network CIDR block.
+    Type: String
+  VPCCidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.0/16
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+  AvailabilityZone:
+    Description: The AvailabilityZone to use
+    Type: AWS::EC2::AvailabilityZone::Name
+  SubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.0.0/24
+    Description: VPC CIDR Block for the Public Subnet (eg 10.0.0.0/24)
+    Type: String
+  LicenseServerInstanceType:
+    Description: Instance type for the License Server. # This server should be provisioned on a dedicated host.
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3a.medium
+      - t3a.large
+      - m5.large
+      - m5.xlarge
+      - m5a.large
+      - m5a.xlarge
+  EmulatorServerInstanceType:
+    Description: Instance type for the Emulator Server, where z/OS will run on top of zD&T. By default 3 CPs will be created, and 12GB of RAM will be assigned to z/OS.
+    Type: String
+    Default: m5.xlarge
+    AllowedValues:
+      - m5.xlarge
+      - m5a.xlarge
+      - m5.2xlarge
+      - m5a.2xlarge
+      - c5.2xlarge
+      - c5a.2xlarge
+  EnterpriseServerInstanceType:
+    Description: Instance type for the EE Server, which will also work as the File Server.
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.medium
+      - t3.large
+      - t3a.medium
+      - t3a.large
+      - m5.large
+      - m5.xlarge
+      - m5a.large
+      - m5a.xlarge
+  KeyPair:
+    Description: Key pair to be used with the instances that will be created.
+    Type: AWS::EC2::KeyPair::KeyName
+  S3BucketName:
+    Default: my-bucket
+    Description: S3 bucket that contains the IBM zD&T installer and ADCD volumes.
+    Type: String
+  Installer:
+    Description: File name of the Enterprise Edition installer, must be in the s3 bucket, inside a folder called 'installer'
+    Type: String
+    Default: ZDT_Install_EE_V12.0.4.0.tgz
+
+Resources:
+  S3Role: 
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: '2012-10-17'
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-IAM-Role-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  S3RolePolicies: 
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyName: !Sub zDT-IAM-Policy-${AWS::StackName}
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Action: ["s3:Get*","s3:List*","s3:Put*"]
+            Resource: [!Sub "arn:aws:s3:::${S3BucketName}/*", !Sub "arn:aws:s3:::${S3BucketName}"]
+      Roles: 
+        - 
+          !Ref S3Role
+  S3InstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - 
+          !Ref S3Role
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        !Ref VPCCidrBlock
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-VPC-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-InternetGateway-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  GatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        !Ref InternetGateway
+      VpcId:
+        !Ref VPC
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-RouteTable-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+      VpcId:
+        !Ref VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        !Ref InternetGateway
+      RouteTableId:
+        !Ref RouteTable
+  Subnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Ref AvailabilityZone
+      CidrBlock: !Ref SubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-Subnet-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+      VpcId: !Ref VPC
+  SubnetAssoc:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        !Ref RouteTable
+      SubnetId:
+        !Ref Subnet
+  SecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub zDT-EC2-SecurityGroup-${AWS::StackName}
+      GroupDescription: Security group for the License Server, Enterprise Server and File Server
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp 
+          FromPort: 20
+          ToPort: 22
+          CidrIp: !Ref UserCidrBlock
+        - IpProtocol: tcp 
+          FromPort: 9443
+          ToPort: 9443
+          CidrIp: !Ref UserCidrBlock
+        - IpProtocol: tcp 
+          FromPort: 2022
+          ToPort: 2023
+          CidrIp: !Ref UserCidrBlock
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-SecurityGroup-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  SecGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Allows communication between zD&T components
+      GroupId: !Ref SecGroup
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref SecGroup
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-SecurityGroupIngress-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  LicenseServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyPair
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", id]
+      InstanceType: !Ref LicenseServerInstanceType
+      IamInstanceProfile: !Ref S3InstanceProfile
+      Monitoring: true
+      SubnetId: !Ref Subnet
+      SecurityGroupIds:
+        - !Ref SecGroup
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          exec > /tmp/part-001.log 2>&1
+          echo "
+          **********************************************************************
+          *! ! ! ! ! ! ! ! ! !  D O   N O T   S H U T D O W N  ! ! ! ! ! ! ! ! *
+          *******************************Warning********************************
+          Software-based License Server needs to be a static resource in any
+          infrastructure configuration. In a virtualized or cloud infrastructure,
+          it does not tolerate physical moving. If the Software-based License Server
+          is manually or automatically moved return the license before moving,
+          acquire the license after movement, and configure the Software-based
+          License Server again." > /etc/motd
+          echo "alias shutdown='echo "\""DO NOT SHUTDOWN THIS INSTANCE, USE COMMAND reboot INSTEAD."\""'" >> /etc/bashrc
+          yum update -y
+          yum install unzip -y
+          #
+          # installs AWS CLI
+          #
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          #
+          # copies zdt installer and installs license server, generates license request and uploads to s3
+          #
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/installer/${Installer} .
+          tar -xvzf ${Installer}
+          installer=${Installer}
+          filename=${!installer%.*}.x86_64
+          ./$filename --install --zdtswlicense --ackVM --dep
+          /opt/IBM/LDK/request_license
+          /usr/local/bin/aws s3 cp /root/*.zip s3://${S3BucketName}/
+          #
+          # creates script that checks for update file
+          #
+          echo '#!/bin/bash -x
+          rm -rf /tmp/license_applied
+          rm -rf /tmp/license_error
+          exec > /tmp/check_license.log 2>&1
+          request=$(find /root -type f -regex ".*compute_internal_[0-9]+.zip")
+          requestnumber=$(find /root -type f -regex ".*compute_internal_[0-9]+.zip" | wc -l)
+          if [ $requestnumber -gt 1 ]; then
+              echo "There is more than one license request file. Continue Manually."
+              echo "Removing cron jobs."
+              crontab -r
+              exit 8
+          fi
+          request=${!request:6}
+          update=${!request%.*}_update.zip
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/${!update} .
+          if [ -f "$update" ]; then
+              echo "License update exists."
+              /opt/IBM/LDK/update_license /root/${!update} >> /tmp/license_applied
+              if [ $? -eq 0 ]; then
+                  /usr/local/bin/aws s3 cp /tmp/license_applied s3://${S3BucketName}/
+                  echo "License successfully applied!"
+                  echo "Removing cron jobs."
+                  crontab -r
+              else
+                  echo "There was an error applying the license update."
+                  mv /tmp/license_applied /tmp/license_error
+                  /usr/local/bin/aws s3 cp /tmp/license_error s3://${S3BucketName}/
+              fi
+          else
+              echo "License update does not exist. Checking again in 5 min."
+              echo "Checked $(date)"
+          fi' > /root/check_license_bucket.sh
+          chmod +x /root/check_license_bucket.sh
+          #
+          # schedules the license check in the bucket every 5 min
+          #
+          echo "*/5 * * * * /root/check_license_bucket.sh" > /root/cron
+          crontab /root/cron
+          echo "License Server installation finished, a script scheduled on cron will be checking if the license update files is uploaded to the S3 bucket."
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-Instance-LicenseServer-${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  EmulatorServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      KeyName: !Ref KeyPair
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", id]
+      InstanceType: !Ref EmulatorServerInstanceType
+      IamInstanceProfile: !Ref S3InstanceProfile
+      Monitoring: true
+      SubnetId: !Ref Subnet
+      SecurityGroupIds:
+        - !Ref SecGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 500
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          exec > /tmp/part-001.log 2>&1
+          yum update -y
+          yum install unzip nc -y
+          #
+          # installs AWS CLI
+          #
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          #
+          # copies zdt installer and installs the emulator
+          #
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/installer/${Installer} .
+          tar -xvzf ${Installer}
+          installer=${Installer}
+          filename=${!installer%.*}.x86_64
+          ./$filename --install --zdtem --dep --net
+          #
+          # removes block for root login, and creates manual key pair for deployment and copies to s3 bucket
+          #
+          ssh-keygen -t rsa -C "root" -f /root/.ssh/${AWS::StackName}-deploy -q -N "${AWS::StackName}ibmzdt"
+          /bin/cp /home/ec2-user/.ssh/authorized_keys /root/.ssh/authorized_keys
+          cat /root/.ssh/${AWS::StackName}-deploy.pub >> /root/.ssh/authorized_keys
+          /usr/local/bin/aws s3 cp /root/.ssh/${AWS::StackName}-deploy s3://${S3BucketName}/
+          echo "Emulator Server installation finished."
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-Instance-EmulatorServer${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
+  EnterpriseServer:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+        - LicenseServer
+        - EmulatorServer
+    Properties:
+      KeyName: !Ref KeyPair
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", id]
+      InstanceType: !Ref EnterpriseServerInstanceType
+      IamInstanceProfile: !Ref S3InstanceProfile
+      Monitoring: true
+      SubnetId: !Ref Subnet
+      SecurityGroupIds:
+        - !Ref SecGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 100
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash -ex
+          exec > /tmp/part-001.log 2>&1
+          yum update -y
+          yum install unzip wget vsftpd ftp -y
+          # installs jq to parse json data from zDT REST API
+          wget -O jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+          chmod +x ./jq
+          cp jq /usr/bin
+          #
+          # installs AWS CLI
+          #
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          # copies the zdt installer and installs and starts the ee server
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/installer/${Installer} .
+          tar -xvzf ${Installer}
+          installer=${Installer}
+          filename=${!installer%.*}.x86_64
+          ./$filename --install --zdtee --dep
+          /opt/ibm/zDT/bin/startServer.sh
+          # https://ip-10-0-0-16.us-west-2.compute.internal:9443/ZDTMC/index.html
+          #
+          # sets up ftp server and copy adcd volumes while enterprise server starts
+          #
+          systemctl enable vsftpd.service
+          useradd zdtftp -d /home/zdtftp
+          echo "zdtftp:zdtftp" | chpasswd
+          systemctl start vsftpd.service
+          mkdir /home/zdtftp/adcd
+          chown zdtftp /home/zdtftp/adcd
+          /usr/local/bin/aws s3 sync s3://${S3BucketName}/adcd /home/zdtftp/adcd --no-progress
+          #
+          # gets EnterpriseServer PrivateIp from metadata to avoid circular reference
+          #
+          TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+          EnterpriseServerPrivateIp=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/meta-data/local-ipv4)
+          #
+          # configures image storage
+          #
+          curl -k -u zdtadmin:password -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ "hostname": '"\"${!EnterpriseServerPrivateIp}\""', "storageSystemType": "FTP", "baseDirectory": "/home/zdtftp/", "port": 21,  "username": "zdtftp",  "password": "zdtftp"  }' 'https://localhost:9443/ZDTREST/zdtrs/imageStoreServices/FTP'
+          #
+          # configures license server
+          #
+          curl -k -u zdtadmin:password -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ "softwarePrimary":{"hostname": '"\"${LicenseServer.PrivateIp}\""'}, "softwareSecondary":{"hostname": ""}}' 'https://localhost:9443/ZDTREST/zdtrs/licenseServices/licensing/software'
+          #
+          # configures target emulator server
+          #
+          curl -k -u zdtadmin:password -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ "hostname": '"\"${EmulatorServer.PrivateIp}\""', "sshPort": 22,  "label":"Emulator", "installOSPackages": true,  "concurrentVolumeTransferNumber": 3, "configNetwork": true,  "configUser": true,  "syntax": "sudo ${!command}",  "syntaxForValidation": "sudo -n -l",  "networkInterface": "eth1"}' 'https://localhost:9443/ZDTREST/zdtrs/targetEnvServices/targetSystem'
+          #
+          # get adcd package info, components name and ADCD version
+          #
+          curl -k -u zdtadmin:password -X GET --header 'Accept: application/json' 'https://localhost:9443/ZDTREST/zdtrs/adcdServices/ADCDs'
+          # [[{"id":1,"name":"z/OS V2.3 May 2019","rsu":"1903","restoreDataset":true,"creationTime":null,"restoreDb2":true}],{}]
+          curl -k -u zdtadmin:password -X GET --header 'Accept: application/json' 'https://localhost:9443/ZDTREST/zdtrs/componentServices/components/may2019' > components.json
+          components=$(jq -r "[.[] | {name: .name}]" components.json)
+          adcdversion=$(jq -r ".[1].zSystem.hostname" components.json)
+          #
+          # creates image
+          #
+          curl -k -u zdtadmin:password -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{ "name": "All components", "zSystem": { "hostname": '"\"${!adcdversion}\""' }, "ftpSystem": { "hostname": '"\"${!EnterpriseServerPrivateIp}\""' }, "components": '"${!components}"' }' 'https://localhost:9443/ZDTREST/zdtrs/appServices/ADCDApplicationImage'
+          #
+          # copies ssh key to deploy to target
+          #
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/${AWS::StackName}-deploy /root/.ssh/
+          chmod 400 /root/.ssh/${AWS::StackName}-deploy
+          #
+          # creates script to check if the license was applied
+          #
+          echo '#!/bin/bash -x
+          exec > /tmp/check_license.log 2>&1
+          components=$(jq -r "[.[] | {name: .name}]" /components.json)
+          adcdversion=$(jq -r ".[1].zSystem.hostname" /components.json)
+          echo "Checking if license was applied in license server by checking if there is a files license_applied in the s3 bucket..."
+          /usr/local/bin/aws s3 cp s3://${S3BucketName}/license_applied /root/
+          if [ -f "/root/license_applied" ]; then
+              echo "License was applied, deploying image to target..."
+              # gets auth token
+              curl -k -u zdtadmin:password -X POST --header '"'"'Content-Type: multipart/form-data'"'"'  --header '"'"'Accept: application/json'"'"' -F '"'"'sshCredentials={"hostname": "${EmulatorServer.PrivateIp}", "port":22, "username":"root", "password": "${AWS::StackName}ibmzdt"}'"'"'  -F '"'"'keyFile=@/root/.ssh/${AWS::StackName}-deploy'"'"' '"'"'https://localhost:9443/ZDTREST/zdtrs/authServices/authenticateSSHkey'"'"' > resp.json
+              token=$(jq '"'"'.token'"'"' resp.json)
+              curl -k -u zdtadmin:password -X POST --header '"'"'Content-Type: application/json'"'"' --header '"'"'Accept: application/json'"'"' --header '"'"'SSHAuthorization: {"token":'"'"'"${!token}"'"'"',"hostname": "${EmulatorServer.PrivateIp}","port":22}'"'"' -d '"'"'{ "targetSystem": { "hostname": "${EmulatorServer.PrivateIp}", "sshPort": 22, "cp": 3, "ram": 12884901888 , "deploymentDirectory": "/home/ibmsys1" }, "application": { "name": "All components", "version": 1, "zSystem": { "hostname": '"'"'"\"${!adcdversion}\""'"'"' }, "ftpSystem": { "hostname": '"\"${!EnterpriseServerPrivateIp}\""' } }, "doIPL": true,"iplDeviceAddress": "0A80", "iplIODFAddress": "0A81", "iplLoadSuffix": "WS", "targetZosUsername": "TSOUSR1", "targetZosPassword": "TSOPASS1" }'"'"' '"'"'https://localhost:9443/ZDTREST/zdtrs/deployServices/deployLinux'"'"'
+              #{"code":0,"parameters":[],"level":"INFO"}
+              # removes cron task
+              crontab -r
+          else
+              echo "License has not been applied yet, checking again in 5 minutes..."
+              echo "Checked $(date)"
+          fi
+          ' > /root/check_license.sh
+          chmod +x /root/check_license.sh
+          echo "*/5 * * * * /root/check_license.sh" > /root/cron
+          crontab /root/cron
+          echo "Enterprise Server installation finished, a script scheduled on cron will be checking if the license_applied file exists in the S3 bucket."
+      Tags:
+        - Key: Name
+          Value: !Sub zDT-EC2-Instance-EnterpriseServer${AWS::StackName}
+        - Key: Stack
+          Value: !Ref AWS::StackName
