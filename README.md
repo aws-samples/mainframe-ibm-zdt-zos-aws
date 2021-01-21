@@ -1,6 +1,6 @@
 ## AWS CloudFormation template to deploy IBM mainframe z/OS on AWS with IBM ZD&T  
 
-This CloudFormation template is provided as part of the AWS Blog Post [Deploying IBM mainframe z/OS on AWS with IBM ZD&T](#).
+This CloudFormation template is provided as part of the AWS Blog Post [Deploying IBM mainframe z/OS on AWS with IBM ZD&T](https://aws.amazon.com/blogs/apn/deploying-ibm-mainframe-z-os-on-aws-with-ibm-zd-and-t/).
 
 ### Provisioning the Infrastructure  
 
