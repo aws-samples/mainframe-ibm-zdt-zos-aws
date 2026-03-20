@@ -86,7 +86,7 @@ Parameters:
   EmulatorServerInstanceType:
     Description: Instance type for the Emulator Server, where z/OS will run on top of zD&T. By default 3 CPs will be created, and 12GB of RAM will be assigned to z/OS.
     Type: String
-    Default: m6i.2xlarge
+    Default: m6i.xlarge
     AllowedValues:
       - m5.xlarge
       - m5.2xlarge
