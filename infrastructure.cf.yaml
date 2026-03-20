@@ -7,9 +7,9 @@ Metadata: {}
 Mappings:
   RegionMap:
     us-east-1:
-      id: ami-029bde47f99a0c8cd
+      id: ami-056244ee7f6e2feb8
     us-west-2:
-      id: ami-02780dd32d07a4075
+      id: ami-04c7815cd1d6c8fa4
 
 Conditions: {}
 
