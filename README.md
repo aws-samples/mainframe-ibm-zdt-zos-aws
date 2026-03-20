@@ -14,7 +14,7 @@ In order to use the provided CloudFormation script you'll need to upload the IBM
 ```
 +-- s3-bucket-name/
 |   +-- installer/
-|   |   +-- ZDT_Install_EE_V12.0.4.0.tgz
+|   |   +-- ZDT_Install_EE_V12.0.5.0.tgz
 |   +-- adcd/
 |   |   +-- may2019/
 |   |   |   +-- may2019_adcd_md5.txt
@@ -116,9 +116,9 @@ If you are interested in deploying IBM ZD&T on AWS and don’t have a license, i
 
 If you would like to have more information related to the use of IBM ZD&T, check [this IBM Redbook](http://www.redbooks.ibm.com/redbooks/pdfs/sg248205.pdf).  
 
-If you need more details on the IBM ZD&T installation steps, feel free to read through [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.4/com.ibm.zsys.rdt.tools.user.guide.doc/topics/zdt_ee.html).  
+If you need more details on the IBM ZD&T installation steps, feel free to read through [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.5/com.ibm.zsys.rdt.tools.user.guide.doc/topics/zdt_ee.html).  
 
-Or, if you would like to understand how the ADCD image that is delivered together with the IBM ZD&T license is organized, check [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.4/com.ibm.zsys.rdt.guide.adcd.doc/topics/t_adcd22_for_zdt.html).   
+Or, if you would like to understand how the ADCD image that is delivered together with the IBM ZD&T license is organized, check [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.5/com.ibm.zsys.rdt.guide.adcd.doc/topics/t_adcd22_for_zdt.html).   
 
 ## Security
 
