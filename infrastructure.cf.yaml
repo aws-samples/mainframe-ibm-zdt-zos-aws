@@ -7,9 +7,9 @@ Metadata: {}
 Mappings:
   RegionMap:
     us-east-1:
-      id: ami-0c76662758dc1db64
+      id: ami-029bde47f99a0c8cd
     us-west-2:
-      id: ami-0b43febdef0c3d1c3
+      id: ami-02780dd32d07a4075
 
 Conditions: {}
 
@@ -435,7 +435,7 @@ Resources:
           yum update -y
           yum install unzip wget vsftpd ftp -y
           # installs jq to parse json data from zDT REST API
-          wget -O jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+          wget -O jq https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
           chmod +x ./jq
           cp jq /usr/bin
           #
