@@ -14,7 +14,7 @@ In order to use the provided CloudFormation script you'll need to upload the IBM
 ```
 +-- s3-bucket-name/
 |   +-- installer/
-|   |   +-- ZDT_Install_EE_V14.2.0.0.tgz
+|   |   +-- zdt-install.tgz
 |   +-- adcd/
 |   |   +-- may2019/
 |   |   |   +-- may2019_adcd_md5.txt

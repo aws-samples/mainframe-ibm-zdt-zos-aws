@@ -115,9 +115,9 @@ Parameters:
     Description: S3 bucket that contains the IBM zD&T installer and ADCD volumes.
     Type: String
   Installer:
-    Description: File name of the Enterprise Edition installer, must be in the s3 bucket, inside a folder called 'installer'
+    Description: File name of the Enterprise Edition installer (downloaded from IBM Passport Advantage), must be uploaded to the S3 bucket inside a folder called 'installer'. For ZD&T 14.x the default filename is typically zdt-install.tgz.
     Type: String
-    Default: ZDT_Install_EE_V14.2.0.0.tgz
+    Default: zdt-install.tgz
 
 Resources:
   S3Role: 
