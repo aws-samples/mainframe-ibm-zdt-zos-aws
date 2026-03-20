@@ -119,7 +119,7 @@ Parameters:
   Installer:
     Description: File name of the Enterprise Edition installer, must be in the s3 bucket, inside a folder called 'installer'
     Type: String
-    Default: ZDT_Install_EE_V12.0.5.0.tgz
+    Default: ZDT_Install_EE_V14.2.0.0.tgz
 
 Resources:
   S3Role: 
