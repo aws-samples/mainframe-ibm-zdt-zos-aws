@@ -7,9 +7,9 @@ Metadata: {}
 Mappings:
   RegionMap:
     us-east-1:
-      id: ami-6871a115
+      id: ami-056244ee7f6e2feb8
     us-west-2:
-      id: ami-28e07e50
+      id: ami-04c7815cd1d6c8fa4
 
 Conditions: {}
 
@@ -73,40 +73,40 @@ Parameters:
   LicenseServerInstanceType:
     Description: Instance type for the License Server. # This server should be provisioned on a dedicated host.
     Type: String
-    Default: t3.medium
+    Default: m6i.large
     AllowedValues:
       - t3.medium
       - t3.large
-      - t3a.medium
-      - t3a.large
       - m5.large
       - m5.xlarge
-      - m5a.large
-      - m5a.xlarge
+      - m6i.large
+      - m6i.xlarge
+      - m7i.large
+      - m7i.xlarge
   EmulatorServerInstanceType:
     Description: Instance type for the Emulator Server, where z/OS will run on top of zD&T. By default 3 CPs will be created, and 12GB of RAM will be assigned to z/OS.
     Type: String
-    Default: m5.xlarge
+    Default: m6i.xlarge
     AllowedValues:
       - m5.xlarge
-      - m5a.xlarge
       - m5.2xlarge
-      - m5a.2xlarge
-      - c5.2xlarge
-      - c5a.2xlarge
+      - m6i.xlarge
+      - m6i.2xlarge
+      - m7i.xlarge
+      - m7i.2xlarge
+      - c6i.2xlarge
+      - c7i.2xlarge
   EnterpriseServerInstanceType:
     Description: Instance type for the EE Server, which will also work as the File Server.
     Type: String
-    Default: t3.medium
+    Default: m6i.xlarge
     AllowedValues:
-      - t3.medium
-      - t3.large
-      - t3a.medium
-      - t3a.large
-      - m5.large
       - m5.xlarge
-      - m5a.large
-      - m5a.xlarge
+      - m5.2xlarge
+      - m6i.xlarge
+      - m6i.2xlarge
+      - m7i.xlarge
+      - m7i.2xlarge
   KeyPair:
     Description: Key pair to be used with the instances that will be created.
     Type: AWS::EC2::KeyPair::KeyName
@@ -115,9 +115,9 @@ Parameters:
     Description: S3 bucket that contains the IBM zD&T installer and ADCD volumes.
     Type: String
   Installer:
-    Description: File name of the Enterprise Edition installer, must be in the s3 bucket, inside a folder called 'installer'
+    Description: File name of the Enterprise Edition installer (downloaded from IBM Passport Advantage), must be uploaded to the S3 bucket inside a folder called 'installer'. For ZD&T 14.x the default filename is typically zdt-install.tgz.
     Type: String
-    Default: ZDT_Install_EE_V12.0.4.0.tgz
+    Default: zdt-install.tgz
 
 Resources:
   S3Role: 
@@ -271,6 +271,9 @@ Resources:
       SubnetId: !Ref Subnet
       SecurityGroupIds:
         - !Ref SecGroup
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
       UserData: 
         Fn::Base64: !Sub |
           #!/bin/bash -ex
@@ -362,6 +365,9 @@ Resources:
       SubnetId: !Ref Subnet
       SecurityGroupIds:
         - !Ref SecGroup
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -413,6 +419,9 @@ Resources:
       SubnetId: !Ref Subnet
       SecurityGroupIds:
         - !Ref SecGroup
+      MetadataOptions:
+        HttpTokens: required
+        HttpEndpoint: enabled
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
           Ebs:
@@ -424,7 +433,7 @@ Resources:
           yum update -y
           yum install unzip wget vsftpd ftp -y
           # installs jq to parse json data from zDT REST API
-          wget -O jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+          wget -O jq https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
           chmod +x ./jq
           cp jq /usr/bin
           #

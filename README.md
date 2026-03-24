@@ -14,7 +14,7 @@ In order to use the provided CloudFormation script you'll need to upload the IBM
 ```
 +-- s3-bucket-name/
 |   +-- installer/
-|   |   +-- ZDT_Install_EE_V12.0.4.0.tgz
+|   |   +-- zdt-install.tgz
 |   +-- adcd/
 |   |   +-- may2019/
 |   |   |   +-- may2019_adcd_md5.txt
@@ -66,7 +66,7 @@ You then have to send this file to your IBM representative, so that they can gen
 
 *hostname*_*unixepochtimestamp*_update.zip (e.g. ip-10-0-0-38_us-west-2_compute_internal_1602073533_update.zip)
 
-If need be, you can find the complete manual installation instructions in the [IBM ZD&T documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.5/com.ibm.zsys.rdt.tools.user.guide.doc/topics/zdt_ee.html).
+If need be, you can find the complete manual installation instructions in the [IBM ZD&T documentation](https://www.ibm.com/docs/en/zdt/14.2.x?topic=enterprise-edition).
 
 ### Deploying target emulators  
 
@@ -90,7 +90,7 @@ Figure 2 shows the IBM ZD&T Admin Console welcome screen once authenticated.
 *Figure 3 - Verifying the ADCD deployment progress*  
 
 You will be able to see in the screen in Figure 3 when the image has been successfully deployed on the target emulator.
-If you choose to deploy a new target emulator manually using the Enterprise Edition web interface, you can find the instructions in the [IBM ZD&T Enterprise Edition User’s Guide](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.5/com.ibm.zsys.rdt.tools.user.guide.doc/topics/provisioning.html).  
+If you choose to deploy a new target emulator manually using the Enterprise Edition web interface, you can find the instructions in the [IBM ZD&T Enterprise Edition User’s Guide](https://www.ibm.com/docs/en/zdt/14.2.x?topic=edition-users-guide).  
 
 ### Accessing and using z/OS
 
@@ -116,9 +116,9 @@ If you are interested in deploying IBM ZD&T on AWS and don’t have a license, i
 
 If you would like to have more information related to the use of IBM ZD&T, check [this IBM Redbook](http://www.redbooks.ibm.com/redbooks/pdfs/sg248205.pdf).  
 
-If you need more details on the IBM ZD&T installation steps, feel free to read through [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.4/com.ibm.zsys.rdt.tools.user.guide.doc/topics/zdt_ee.html).  
+If you need more details on the IBM ZD&T installation steps, feel free to read through [IBM's documentation](https://www.ibm.com/docs/en/zdt/14.2.x?topic=enterprise-edition).  
 
-Or, if you would like to understand how the ADCD image that is delivered together with the IBM ZD&T license is organized, check [IBM's documentation](https://www.ibm.com/support/knowledgecenter/SSTQBD_12.0.4/com.ibm.zsys.rdt.guide.adcd.doc/topics/t_adcd22_for_zdt.html).   
+Or, if you would like to understand how the ADCD image that is delivered together with the IBM ZD&T license is organized, check [IBM's documentation](https://www.ibm.com/docs/en/zdt/14.2.x?topic=extended-adcd-reference).   
 
 ## Security
 
